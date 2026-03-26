@@ -1,0 +1,28 @@
+# Dépendances
+node_modules/
+Backend_Adminstrateur/node_modules/
+
+# Build
+dist/
+
+# Environnement
+.env
+.env.local
+.env.*.local
+
+# Uploads générés (fichiers uploadés au runtime)
+Backend_Adminstrateur/uploads/*
+!Backend_Adminstrateur/uploads/.gitkeep
+
+# Captures d'écran / outputs
+outputs/
+admin-screenshot.png
+public.rar
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

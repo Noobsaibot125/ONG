@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cmd.exe /c \"tasklist /FI \"\"PID eq 19592\"\" /FO LIST\")"
+    ]
+  }
+}
