@@ -2,10 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Home, Users, ImageIcon, Phone, LogOut, Loader2, Plus, Trash2,
-  Upload, Zap, CheckCircle2, Heart, LayoutDashboard, Rocket, Contact, Eye, Save
+  Upload, CheckCircle2, LayoutDashboard, Rocket, Contact,
+  AlertTriangle, RotateCcw, WifiOff, Save
 } from 'lucide-react';
 
-type Tab = 'dashboard' | 'accueil' | 'qsn' | 'actions' | 'galerie' | 'contact';
+type Tab = 'dashboard' | 'accueil' | 'qsn' | 'actions' | 'galerie' | 'contact' | 'maintenance';
 const API = 'http://localhost:5000';
 
 // --- Composants utilitaires ---
@@ -57,7 +58,7 @@ const ImageUploader: React.FC<{
         body: fd,
       });
       const data = await resp.json();
-      onUpload(data.url);
+      if (data.url) onUpload(data.url);
     } finally {
       setUploading(false);
     }
@@ -71,12 +72,15 @@ const ImageUploader: React.FC<{
     <div className="flex flex-col gap-2">
       <label className="text-lg font-bold text-gray-900">{label}</label>
       <div className="flex items-center gap-4">
+        {previewSrc && (
+          <img src={previewSrc} alt="preview" className="w-16 h-16 object-cover rounded-lg border border-gray-200 flex-shrink-0" />
+        )}
         <input
           type="text"
           value={currentUrl}
           readOnly
           className="flex-1 bg-white border border-gray-200 rounded-xl px-5 py-4 text-lg text-gray-500 outline-none"
-          placeholder="https://..."
+          placeholder="Aucune image sélectionnée"
         />
         <button
           type="button"
@@ -108,29 +112,45 @@ export const AdminDashboard: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [token, setToken] = useState('');
+
+  // Maintenance
+  const [maintenanceEnabled, setMaintenanceEnabled] = useState(false);
+  const [maintenanceMessage, setMaintenanceMessage] = useState('Site en maintenance. Nous revenons bientôt !');
+  const [savingMaintenance, setSavingMaintenance] = useState(false);
+  const [maintenanceSaved, setMaintenanceSaved] = useState(false);
+
+  // Reset
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [resetting, setResetting] = useState(false);
+
   const navigate = useNavigate();
 
   useEffect(() => {
     const t = localStorage.getItem('admin_token') || '';
     if (!t) { navigate('/admin/login'); return; }
     setToken(t);
-    fetchAll();
+    fetchAll(t);
   }, [navigate]);
 
-  const fetchAll = async () => {
+  const fetchAll = async (tk?: string) => {
+    const authToken = tk || token;
     try {
-      const [contentRes, galleryRes] = await Promise.all([
+      const [contentRes, galleryRes, maintenanceRes] = await Promise.all([
         fetch(`${API}/api/content`),
         fetch(`${API}/api/gallery`),
+        fetch(`${API}/api/maintenance`),
       ]);
       const contentData = await contentRes.json();
       const galleryData = await galleryRes.json();
+      const maintenanceData = await maintenanceRes.json();
       const map: Record<string, string> = {};
       contentData.forEach((item: any) => {
         map[`${item.page_name}|${item.section_name}|${item.content_key}`] = item.content_value;
       });
       setContent(map);
       setGallery(galleryData);
+      setMaintenanceEnabled(maintenanceData.enabled || false);
+      setMaintenanceMessage(maintenanceData.message || 'Site en maintenance. Nous revenons bientôt !');
     } catch (err) {
       console.error(err);
     } finally {
@@ -144,7 +164,26 @@ export const AdminDashboard: React.FC = () => {
   const set = (page: string, section: string, key: string, value: string) =>
     setContent(prev => ({ ...prev, [`${page}|${section}|${key}`]: value }));
 
+  // Sauvegarde avec valeur immédiate (corrige le bug de closure stale pour les images)
+  const saveDirectValue = async (page: string, section: string, key: string, value: string) => {
+    setSaving(true);
+    setSaveSuccess(false);
+    try {
+      await fetch(`${API}/api/content`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ page_name: page, section_name: section, content_key: key, content_value: value }),
+      });
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 2500);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Sauvegarde de plusieurs items depuis le state courant
   const saveItems = async (items: { page: string; section: string; key: string }[]) => {
+    if (items.length === 0) return;
     setSaving(true);
     setSaveSuccess(false);
     try {
@@ -167,8 +206,85 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
-  const saveOne = (page: string, section: string, key: string) =>
-    saveItems([{ page, section, key }]);
+  // Items correspondant à chaque onglet pour le bouton "Enregistrer" global
+  const getTabItems = (): { page: string; section: string; key: string }[] => {
+    switch (activeTab) {
+      case 'accueil': return [
+        { page: 'accueil', section: 'hero', key: 'title' },
+        { page: 'accueil', section: 'hero', key: 'subtitle' },
+        { page: 'accueil', section: 'about', key: 'paragraph1' },
+        { page: 'accueil', section: 'about', key: 'paragraph2' },
+        { page: 'accueil', section: 'about', key: 'quote' },
+        ...[1, 2, 3, 4].flatMap(n => [
+          { page: 'accueil', section: 'stats', key: `stat${n}_value` },
+          { page: 'accueil', section: 'stats', key: `stat${n}_suffix` },
+          { page: 'accueil', section: 'stats', key: `stat${n}_label` },
+        ]),
+      ];
+      case 'qsn': return [
+        { page: 'qsn', section: 'hero', key: 'title' },
+        { page: 'qsn', section: 'hero', key: 'subtitle' },
+        { page: 'qsn', section: 'intro', key: 'paragraph1' },
+        { page: 'qsn', section: 'intro', key: 'paragraph2' },
+        ...[1, 2, 3].flatMap(n => [
+          { page: 'qsn', section: 'team', key: `member${n}_name` },
+          { page: 'qsn', section: 'team', key: `member${n}_role` },
+        ]),
+      ];
+      case 'actions': return [
+        ...(['action1', 'action2', 'action3'] as const).flatMap(ak => [
+          { page: 'actions', section: ak, key: 'title' },
+          { page: 'actions', section: ak, key: 'description' },
+          { page: 'actions', section: ak, key: 'point1' },
+          { page: 'actions', section: ak, key: 'point2' },
+          { page: 'actions', section: ak, key: 'point3' },
+          { page: 'actions', section: ak, key: 'point4' },
+        ]),
+      ];
+      case 'contact': return [
+        { page: 'contact', section: 'info', key: 'address' },
+        { page: 'contact', section: 'info', key: 'phone' },
+        { page: 'contact', section: 'info', key: 'email' },
+        { page: 'contact', section: 'hours', key: 'week' },
+        { page: 'contact', section: 'hours', key: 'weekend' },
+      ];
+      default: return [];
+    }
+  };
+
+  const handleGlobalSave = () => saveItems(getTabItems());
+
+  // Maintenance save
+  const saveMaintenance = async () => {
+    setSavingMaintenance(true);
+    setMaintenanceSaved(false);
+    try {
+      await fetch(`${API}/api/maintenance`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ enabled: maintenanceEnabled, message: maintenanceMessage }),
+      });
+      setMaintenanceSaved(true);
+      setTimeout(() => setMaintenanceSaved(false), 3000);
+    } finally {
+      setSavingMaintenance(false);
+    }
+  };
+
+  // Reset content
+  const handleReset = async () => {
+    setResetting(true);
+    try {
+      await fetch(`${API}/api/content/reset`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setContent({});
+      setShowResetConfirm(false);
+    } finally {
+      setResetting(false);
+    }
+  };
 
   // --- Galerie ---
   const [galleryTitle, setGalleryTitle] = useState('');
@@ -214,26 +330,38 @@ export const AdminDashboard: React.FC = () => {
   );
 
   const tabs: { id: Tab; icon: React.ElementType; label: string }[] = [
-    { id: 'dashboard', icon: LayoutDashboard, label: 'Tableau de board' },
+    { id: 'dashboard', icon: LayoutDashboard, label: 'Tableau de bord' },
     { id: 'accueil', icon: Home, label: 'Accueil' },
     { id: 'qsn', icon: Users, label: 'Qui sommes-nous' },
     { id: 'actions', icon: Rocket, label: 'Nos Actions' },
     { id: 'galerie', icon: ImageIcon, label: 'Galerie' },
     { id: 'contact', icon: Contact, label: 'Contacts' },
+    { id: 'maintenance', icon: WifiOff, label: 'Maintenance' },
   ];
 
   const SectionCard: React.FC<{
     title: string;
     icon?: React.ElementType;
     children: React.ReactNode;
-    onSave: () => void;
+    onSave?: () => void;
   }> = ({ title, icon: Icon = LayoutDashboard, children, onSave }) => (
     <div className="bg-white rounded-[32px] border border-gray-100 shadow-sm overflow-hidden p-10">
-      <div className="flex items-center gap-4 mb-10">
-        <div className="text-[#10B981]">
-          <Icon size={32} />
+      <div className="flex items-center justify-between gap-4 mb-10">
+        <div className="flex items-center gap-4">
+          <div className="text-[#10B981]">
+            <Icon size={32} />
+          </div>
+          <h3 className="text-3xl font-bold text-gray-900">{title}</h3>
         </div>
-        <h3 className="text-3xl font-bold text-gray-900">{title}</h3>
+        {onSave && (
+          <button
+            onClick={onSave}
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 font-semibold rounded-xl hover:bg-emerald-100 transition-all text-sm border border-emerald-200"
+          >
+            <Save size={16} />
+            Enregistrer
+          </button>
+        )}
       </div>
       <div className="space-y-8">
         {children}
@@ -255,6 +383,8 @@ export const AdminDashboard: React.FC = () => {
     </div>
   );
 
+  const showGlobalSave = ['accueil', 'qsn', 'actions', 'contact'].includes(activeTab);
+
   return (
     <div className="flex min-h-screen bg-[#F1F5F9]">
 
@@ -274,18 +404,26 @@ export const AdminDashboard: React.FC = () => {
         <nav className="flex-1 mt-4 px-3 space-y-1">
           {tabs.map(item => {
             const isActive = activeTab === item.id;
+            const isMaintenance = item.id === 'maintenance';
             return (
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
                 className={`w-full flex items-center gap-3 px-5 py-3 rounded-lg transition-all font-semibold text-sm ${
                   isActive
-                    ? 'bg-white text-[#145C2D] shadow-md'
-                    : 'text-white/90 hover:bg-white/10'
+                    ? isMaintenance
+                      ? 'bg-orange-500 text-white shadow-md'
+                      : 'bg-white text-[#145C2D] shadow-md'
+                    : isMaintenance
+                      ? 'text-orange-300 hover:bg-orange-500/20'
+                      : 'text-white/90 hover:bg-white/10'
                 }`}
               >
-                <item.icon size={20} className={isActive ? 'text-[#145C2D]' : 'text-white/80'} />
+                <item.icon size={20} className={isActive ? (isMaintenance ? 'text-white' : 'text-[#145C2D]') : isMaintenance ? 'text-orange-300' : 'text-white/80'} />
                 <span>{item.label}</span>
+                {isMaintenance && maintenanceEnabled && (
+                  <span className="ml-auto w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
+                )}
               </button>
             );
           })}
@@ -317,28 +455,45 @@ export const AdminDashboard: React.FC = () => {
             </p>
           </div>
 
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={() => window.open('/', '_blank')}
-              className="flex items-center gap-2 px-6 py-3 border-2 border-emerald-500 text-emerald-600 font-bold rounded-xl hover:bg-emerald-50 transition-all text-lg"
+          <div className="flex items-center gap-3">
+            {/* Reset button */}
+            <button
+              onClick={() => setShowResetConfirm(true)}
+              className="flex items-center gap-2 px-5 py-3 border-2 border-red-300 text-red-500 font-bold rounded-xl hover:bg-red-50 transition-all text-sm"
+              title="Réinitialiser le contenu par défaut"
             >
-              <Users size={20} /> {/* Using Users as a placeholder for eye/view if not available, but let's look for eye */}
-              <Zap size={20} className="hidden" /> {/* just keeping imports clean */}
+              <RotateCcw size={18} />
+              Réinitialiser
+            </button>
+
+            <button
+              onClick={() => window.open('/', '_blank')}
+              className="flex items-center gap-2 px-5 py-3 border-2 border-emerald-500 text-emerald-600 font-bold rounded-xl hover:bg-emerald-50 transition-all text-sm"
+            >
+              <Home size={18} />
               Voir le site
             </button>
-            
-            <button
-              onClick={() => saveItems([])} // Placeholder for global save or last section save
-              className="flex items-center gap-2 px-8 py-3 bg-[#10B981] text-white font-extrabold rounded-xl hover:bg-emerald-600 transition-all shadow-lg text-lg shadow-emerald-200"
-            >
-              <CheckCircle2 size={24} className="hidden" /> 
-              <ImageIcon size={20} className="hidden" />
-              <LogOut size={20} className="hidden" />
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-              </svg>
-              Enregistrer
-            </button>
+
+            {showGlobalSave && (
+              <button
+                onClick={handleGlobalSave}
+                disabled={saving}
+                className={`flex items-center gap-2 px-6 py-3 font-extrabold rounded-xl transition-all shadow-lg text-sm ${
+                  saveSuccess
+                    ? 'bg-emerald-400 text-white shadow-emerald-200'
+                    : 'bg-[#10B981] text-white hover:bg-emerald-600 shadow-emerald-200'
+                }`}
+              >
+                {saving ? (
+                  <Loader2 size={20} className="animate-spin" />
+                ) : saveSuccess ? (
+                  <CheckCircle2 size={20} />
+                ) : (
+                  <Save size={20} />
+                )}
+                {saveSuccess ? 'Enregistré !' : 'Enregistrer'}
+              </button>
+            )}
           </div>
         </header>
 
@@ -362,7 +517,7 @@ export const AdminDashboard: React.FC = () => {
                   <ImageUploader
                     label="Image de fond"
                     currentUrl={get('accueil', 'hero', 'image')}
-                    onUpload={url => { set('accueil', 'hero', 'image', url); saveOne('accueil', 'hero', 'image'); }}
+                    onUpload={url => { set('accueil', 'hero', 'image', url); saveDirectValue('accueil', 'hero', 'image', url); }}
                     token={token}
                   />
                 </SectionCard>
@@ -382,7 +537,7 @@ export const AdminDashboard: React.FC = () => {
                   <ImageUploader
                     label="Image À propos"
                     currentUrl={get('accueil', 'about', 'image')}
-                    onUpload={url => { set('accueil', 'about', 'image', url); saveOne('accueil', 'about', 'image'); }}
+                    onUpload={url => { set('accueil', 'about', 'image', url); saveDirectValue('accueil', 'about', 'image', url); }}
                     token={token}
                   />
                 </SectionCard>
@@ -422,7 +577,7 @@ export const AdminDashboard: React.FC = () => {
                   <ImageUploader
                     label="Image de fond"
                     currentUrl={get('qsn', 'hero', 'image')}
-                    onUpload={url => { set('qsn', 'hero', 'image', url); saveOne('qsn', 'hero', 'image'); }}
+                    onUpload={url => { set('qsn', 'hero', 'image', url); saveDirectValue('qsn', 'hero', 'image', url); }}
                     token={token}
                   />
                 </SectionCard>
@@ -439,18 +594,14 @@ export const AdminDashboard: React.FC = () => {
                   <Field label="Paragraphe 2" value={get('qsn', 'intro', 'paragraph2', "Sous la présidence de M. Serge KADIO, l'association s'est donnée pour mission principale d'apporter un soutien concret aux populations les plus démunies, avec un focus particulier sur l'Afrique de l'Ouest.")} onChange={v => set('qsn', 'intro', 'paragraph2', v)} multiline rows={4} />
                 </SectionCard>
 
-                <SectionCard
-                  title="Images de la présentation"
-                  icon={ImageIcon}
-                  onSave={() => {}}
-                >
+                <SectionCard title="Images de la présentation" icon={ImageIcon}>
                   <div className="grid grid-cols-3 gap-4">
                     {(['image1', 'image2', 'image3'] as const).map((key, i) => (
                       <ImageUploader
                         key={key}
                         label={`Image ${i + 1}`}
                         currentUrl={get('qsn', 'intro', key)}
-                        onUpload={url => { set('qsn', 'intro', key, url); saveOne('qsn', 'intro', key); }}
+                        onUpload={url => { set('qsn', 'intro', key, url); saveDirectValue('qsn', 'intro', key, url); }}
                         token={token}
                       />
                     ))}
@@ -486,7 +637,7 @@ export const AdminDashboard: React.FC = () => {
                         <ImageUploader
                           label="Photo"
                           currentUrl={get('qsn', 'team', `member${n}_image`)}
-                          onUpload={url => { set('qsn', 'team', `member${n}_image`, url); saveOne('qsn', 'team', `member${n}_image`); }}
+                          onUpload={url => { set('qsn', 'team', `member${n}_image`, url); saveDirectValue('qsn', 'team', `member${n}_image`, url); }}
                           token={token}
                         />
                       </div>
@@ -547,7 +698,7 @@ export const AdminDashboard: React.FC = () => {
                       <ImageUploader
                         label="Image"
                         currentUrl={get('actions', ak, 'image')}
-                        onUpload={url => { set('actions', ak, 'image', url); saveOne('actions', ak, 'image'); }}
+                        onUpload={url => { set('actions', ak, 'image', url); saveDirectValue('actions', ak, 'image', url); }}
                         token={token}
                       />
                     </SectionCard>
@@ -682,9 +833,136 @@ export const AdminDashboard: React.FC = () => {
               </SectionCard>
             )}
 
+            {/* ===== MAINTENANCE ===== */}
+            {activeTab === 'maintenance' && (
+              <div className="space-y-6">
+                {/* Status Card */}
+                <div className={`rounded-[32px] border-2 p-10 ${maintenanceEnabled ? 'bg-orange-50 border-orange-300' : 'bg-white border-gray-100'} shadow-sm transition-all`}>
+                  <div className="flex items-center gap-4 mb-8">
+                    <div className={`p-3 rounded-2xl ${maintenanceEnabled ? 'bg-orange-500' : 'bg-gray-100'}`}>
+                      <WifiOff size={28} className={maintenanceEnabled ? 'text-white' : 'text-gray-400'} />
+                    </div>
+                    <div>
+                      <h3 className="text-3xl font-bold text-gray-900">Mode Maintenance</h3>
+                      <p className="text-gray-500 mt-1">Lorsqu'activé, les visiteurs verront une page de maintenance</p>
+                    </div>
+                  </div>
+
+                  {/* Toggle */}
+                  <div className={`flex items-center justify-between p-6 rounded-2xl border-2 mb-8 ${maintenanceEnabled ? 'border-orange-300 bg-orange-100/50' : 'border-gray-200 bg-gray-50'}`}>
+                    <div>
+                      <p className="text-xl font-bold text-gray-800">Site en maintenance</p>
+                      <p className={`text-sm mt-1 font-medium ${maintenanceEnabled ? 'text-orange-600' : 'text-gray-400'}`}>
+                        {maintenanceEnabled ? '⚠️ Le site est actuellement inaccessible aux visiteurs' : '✅ Le site est accessible au public'}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setMaintenanceEnabled(!maintenanceEnabled)}
+                      className={`relative w-16 h-8 rounded-full transition-all duration-300 focus:outline-none ${maintenanceEnabled ? 'bg-orange-500' : 'bg-gray-300'}`}
+                    >
+                      <span className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full shadow transition-transform duration-300 ${maintenanceEnabled ? 'translate-x-8' : 'translate-x-0'}`} />
+                    </button>
+                  </div>
+
+                  {/* Message personnalisé */}
+                  <div className="mb-6">
+                    <label className="text-lg font-bold text-gray-900 block mb-3">Message affiché aux visiteurs</label>
+                    <textarea
+                      rows={4}
+                      value={maintenanceMessage}
+                      onChange={e => setMaintenanceMessage(e.target.value)}
+                      placeholder="Ex : Notre site est en cours de maintenance. Nous serons de retour très bientôt. Merci pour votre patience !"
+                      className="w-full bg-white border-2 border-gray-200 rounded-xl px-5 py-4 text-lg text-gray-800 outline-none focus:border-orange-400 transition-all"
+                    />
+                  </div>
+
+                  {/* Preview */}
+                  {maintenanceEnabled && (
+                    <div className="mb-6 rounded-2xl overflow-hidden border-2 border-orange-200">
+                      <div className="bg-orange-500 px-4 py-2 flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-white/50" />
+                        <div className="w-3 h-3 rounded-full bg-white/50" />
+                        <div className="w-3 h-3 rounded-full bg-white/50" />
+                        <span className="text-white/70 text-xs ml-2 font-mono">Aperçu — page visiteurs</span>
+                      </div>
+                      <div className="bg-gradient-to-br from-gray-900 to-gray-800 px-8 py-12 text-center">
+                        <div className="w-16 h-16 rounded-full bg-orange-500/20 flex items-center justify-center mx-auto mb-4">
+                          <WifiOff size={32} className="text-orange-400" />
+                        </div>
+                        <h2 className="text-2xl font-bold text-white mb-3">Site en maintenance</h2>
+                        <p className="text-gray-400 text-base max-w-md mx-auto">{maintenanceMessage}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Save button */}
+                  <button
+                    onClick={saveMaintenance}
+                    disabled={savingMaintenance}
+                    className={`flex items-center gap-3 px-8 py-4 font-bold rounded-xl transition-all text-lg w-full justify-center ${
+                      maintenanceSaved
+                        ? 'bg-emerald-500 text-white'
+                        : maintenanceEnabled
+                          ? 'bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-200'
+                          : 'bg-[#10B981] hover:bg-emerald-600 text-white shadow-lg shadow-emerald-200'
+                    }`}
+                  >
+                    {savingMaintenance ? (
+                      <Loader2 size={22} className="animate-spin" />
+                    ) : maintenanceSaved ? (
+                      <CheckCircle2 size={22} />
+                    ) : (
+                      <Save size={22} />
+                    )}
+                    {maintenanceSaved ? 'Paramètres sauvegardés !' : 'Enregistrer les paramètres'}
+                  </button>
+                </div>
+
+                {/* Info card */}
+                <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 flex gap-4">
+                  <AlertTriangle size={22} className="text-blue-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-bold text-blue-800 mb-1">Comment ça fonctionne ?</p>
+                    <p className="text-blue-600 text-sm">Lorsque le mode maintenance est activé, tous les visiteurs verront une page indiquant que le site est en cours de maintenance. Les administrateurs peuvent toujours accéder au dashboard via <span className="font-mono font-bold">/admin</span>.</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
           </div>
         </main>
       </div>
+
+      {/* ===== MODAL RÉINITIALISATION ===== */}
+      {showResetConfirm && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8">
+            <div className="flex items-center justify-center w-16 h-16 bg-red-100 rounded-2xl mx-auto mb-6">
+              <AlertTriangle size={32} className="text-red-500" />
+            </div>
+            <h3 className="text-2xl font-extrabold text-gray-900 text-center mb-3">Réinitialiser le contenu ?</h3>
+            <p className="text-gray-500 text-center mb-8">
+              Cette action supprimera <strong>tout le contenu personnalisé</strong> du site (textes, images, etc.) et restaurera les valeurs par défaut. Cette action est <strong>irréversible</strong>.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowResetConfirm(false)}
+                className="flex-1 px-6 py-3 border-2 border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-50 transition-all"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleReset}
+                disabled={resetting}
+                className="flex-1 px-6 py-3 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2"
+              >
+                {resetting ? <Loader2 size={18} className="animate-spin" /> : <RotateCcw size={18} />}
+                {resetting ? 'Réinitialisation…' : 'Réinitialiser'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

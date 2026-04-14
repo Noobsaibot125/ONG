@@ -114,6 +114,52 @@ app.put('/api/content', authenticateToken, async (req, res) => {
     }
 });
 
+// Réinitialiser tout le contenu du site
+app.delete('/api/content/reset', authenticateToken, async (req, res) => {
+    try {
+        await pool.query('DELETE FROM site_content');
+        res.json({ message: 'Contenu réinitialisé avec succès' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- ROUTES MAINTENANCE ---
+// Récupérer le statut de maintenance
+app.get('/api/maintenance', async (req, res) => {
+    try {
+        const [rows] = await pool.query(
+            "SELECT content_value FROM site_content WHERE page_name = 'site' AND section_name = 'maintenance' AND content_key = 'enabled'"
+        );
+        const enabled = rows.length > 0 ? rows[0].content_value === 'true' : false;
+        const [msgRows] = await pool.query(
+            "SELECT content_value FROM site_content WHERE page_name = 'site' AND section_name = 'maintenance' AND content_key = 'message'"
+        );
+        const message = msgRows.length > 0 ? msgRows[0].content_value : 'Site en maintenance. Nous revenons bientôt !';
+        res.json({ enabled, message });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Mettre à jour le mode maintenance
+app.put('/api/maintenance', authenticateToken, async (req, res) => {
+    const { enabled, message } = req.body;
+    try {
+        await pool.query(
+            "INSERT INTO site_content (page_name, section_name, content_key, content_value) VALUES ('site', 'maintenance', 'enabled', ?) ON DUPLICATE KEY UPDATE content_value = ?",
+            [String(enabled), String(enabled)]
+        );
+        await pool.query(
+            "INSERT INTO site_content (page_name, section_name, content_key, content_value) VALUES ('site', 'maintenance', 'message', ?) ON DUPLICATE KEY UPDATE content_value = ?",
+            [message || 'Site en maintenance. Nous revenons bientôt !', message || 'Site en maintenance. Nous revenons bientôt !']
+        );
+        res.json({ message: 'Mode maintenance mis à jour', enabled });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // --- ROUTES GALERIE ---
 app.get('/api/gallery', async (req, res) => {
     try {
