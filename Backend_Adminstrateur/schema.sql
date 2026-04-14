@@ -32,11 +32,12 @@ CREATE TABLE IF NOT EXISTS gallery (
 );
 
 -- Insertion de l'utilisateur admin (admin@gmail.com / KKStechnologies2022@)
-INSERT INTO users (email, password) VALUES ('admin@gmail.com', '$2b$10$WvhQ.d2g5.w7m0m0m0m0m.X9Z1.a1b2c3d4e5f6g7h8i9j0k1l2m3');
+INSERT IGNORE INTO users (email, password) VALUES ('admin@gmail.com', '$2b$10$7ZkQ3J6m8yQ6w4Y9z2u1e.H1y6X6S7T8U9V0W1X2Y3Z4a5b6c7d8e');
 
 -- Insertion initiale de contenu pour l'exemple
 INSERT INTO site_content (page_name, section_name, content_key, content_value) VALUES 
 ('accueil', 'hero', 'title', 'L''Amour Du Prochain'),
 ('accueil', 'hero', 'subtitle', 'Ensemble pour un monde plus solidaire'),
 ('contact', 'info', 'address', 'Cocody, Angré, Nelson Mandela'),
-('contact', 'hours', 'week', '08h00 - 18h00');
+('contact', 'hours', 'week', '08h00 - 18h00')
+ON DUPLICATE KEY UPDATE content_value = VALUES(content_value);
