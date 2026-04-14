@@ -86,35 +86,36 @@ export const ContactForm: React.FC = () => {
               />
               <textarea
                 placeholder="Ecrivez votre message..."
-                rows={4}
+                rows={6}
                 className="w-full bg-[#1A1A1A]/40 border border-white/20 rounded-lg px-6 py-4 text-white outline-none focus:border-green-500 transition-colors placeholder-gray-400 resize-none"
               ></textarea>
               <button
                 type="submit"
-                className="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-lg transition-colors mt-2"
+                className="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white font-extrabold py-4 rounded-full transition-all mt-2 text-lg shadow-lg hover:shadow-green-500/20"
               >
-                Envoyer <Send size={20} />
+                Envoyer <Send size={20} className="rotate-45 ml-1" />
               </button>
             </form>
           </div>
 
           {/* Opening Hours */}
-          <div className="bg-green-500 rounded-lg p-10 text-white flex flex-col justify-between">
-            <div>
-              <h3 className="text-3xl font-bold mb-10">Horaires d'ouverture</h3>
-              <div className="space-y-6">
-                <div className="flex justify-between border-b border-white/20 pb-2">
-                  <span className="font-medium text-lg">Lundi - Vendredi</span>
-                  <span className="font-bold text-lg">08h00 - 18h00</span>
-                </div>
-                <div className="flex justify-between border-b border-white/20 pb-2">
-                  <span className="font-medium text-lg">Samedi</span>
-                  <span className="font-bold text-lg">09h00 - 13h00</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-medium text-lg">Dimanche</span>
-                  <span className="font-bold text-lg">Fermé</span>
-                </div>
+          <div className="bg-green-500 rounded-2xl p-8 text-white flex flex-col items-center text-center">
+            <h3 className="text-2xl font-bold mb-4">Horaires d'ouverture</h3>
+            <p className="text-white/90 text-sm mb-8 max-w-[200px]">
+              Nous sommes disponibles pour vous accueillir ou répondre à vos appels
+            </p>
+            <div className="w-full space-y-4">
+              <div className="flex justify-between items-center text-sm">
+                <span className="font-semibold">Lundi - Vendredi</span>
+                <span className="font-bold">09:00 - 18:00</span>
+              </div>
+              <div className="flex justify-between items-center text-sm border-t border-white/20 pt-4">
+                <span className="font-semibold">Samedi</span>
+                <span className="font-bold">10:00 - 14:00</span>
+              </div>
+              <div className="flex justify-between items-center text-sm border-t border-white/20 pt-4">
+                <span className="font-semibold">Dimanche</span>
+                <span className="font-bold">Fermé</span>
               </div>
             </div>
           </div>
@@ -123,3 +124,4 @@ export const ContactForm: React.FC = () => {
     </section>
   );
 };
+

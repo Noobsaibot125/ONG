@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useContent } from '../context/ContentContext';
+import { Link } from 'react-router-dom';
 
 export const Hero: React.FC<{ onOpenDonation: () => void }> = ({ onOpenDonation }) => {
   const { get, imgSrc } = useContent();
@@ -36,15 +37,16 @@ export const Hero: React.FC<{ onOpenDonation: () => void }> = ({ onOpenDonation 
             >
               Notre Mission
             </a>
-            <button
-              onClick={onOpenDonation}
+            <Link
+              to="/faire-un-don"
               className="px-8 py-3.5 bg-white text-green-700 hover:bg-gray-100 rounded-full font-bold text-lg transition-colors shadow-lg"
             >
-              Nous Rejoindre
-            </button>
+              Faire un don
+            </Link>
           </div>
         </motion.div>
       </div>
     </div>
   );
 };
+

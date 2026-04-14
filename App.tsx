@@ -9,6 +9,7 @@ import { QSN } from './pages/QSN';
 import { Actions } from './pages/Actions';
 import { Galerie } from './pages/Galerie';
 import { Contact } from './pages/Contact';
+import { Don } from './pages/Don';
 import { AdminLogin } from './pages/admin/AdminLogin';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 
@@ -27,10 +28,12 @@ function AppContent() {
           <Route path="/actions" element={<Actions />} />
           <Route path="/galerie" element={<Galerie />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/faire-un-don" element={<Don />} />
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin" element={<AdminDashboard />} />
         </Routes>
       </main>
+
       {!isAdminPath && <Footer onOpenDonation={() => setIsDonationOpen(true)} />}
 
       <DonationModal

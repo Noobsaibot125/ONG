@@ -45,8 +45,9 @@ export const Footer: React.FC<{ onOpenDonation: () => void }> = ({ onOpenDonatio
                 <li><Link to="/qsn" className="hover:text-white transition-colors">Qui sommes-nous</Link></li>
                 <li><a href="/#actions" className="hover:text-white transition-colors">Nos Actions</a></li>
                 <li><a href="/#gallery" className="hover:text-white transition-colors">Galerie</a></li>
-                <li><button onClick={onOpenDonation} className="hover:text-white transition-colors">Faire un don</button></li>
+                <li><Link to="/faire-un-don" className="hover:text-white transition-colors">Faire un don</Link></li>
               </ul>
+
             </div>
 
             {/* Column 3: Actions */}

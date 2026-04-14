@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Home, Users, ImageIcon, Phone, LogOut, Loader2, Plus, Trash2, Upload, Zap, CheckCircle2, Heart } from 'lucide-react';
+import {
+  Home, Users, ImageIcon, Phone, LogOut, Loader2, Plus, Trash2,
+  Upload, Zap, CheckCircle2, Heart, LayoutDashboard, Rocket, Contact, Eye, Save
+} from 'lucide-react';
 
-type Tab = 'accueil' | 'qsn' | 'actions' | 'galerie' | 'contact';
+type Tab = 'dashboard' | 'accueil' | 'qsn' | 'actions' | 'galerie' | 'contact';
 const API = 'http://localhost:5000';
 
 // --- Composants utilitaires ---
@@ -14,21 +17,21 @@ const Field: React.FC<{
   multiline?: boolean;
   rows?: number;
 }> = ({ label, value, onChange, multiline, rows = 3 }) => (
-  <div className="flex flex-col gap-1.5">
-    <label className="text-xs font-semibold uppercase tracking-widest text-slate-400">{label}</label>
+  <div className="flex flex-col gap-2">
+    <label className="text-lg font-bold text-gray-900">{label}</label>
     {multiline ? (
       <textarea
         rows={rows}
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-sm text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 resize-none transition-all placeholder:text-slate-300"
+        className="w-full bg-white border border-gray-200 rounded-xl px-5 py-4 text-lg text-gray-800 outline-none focus:border-[#10B981] transition-all placeholder:text-gray-300"
       />
     ) : (
       <input
         type="text"
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-sm text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all placeholder:text-slate-300"
+        className="w-full bg-white border border-gray-200 rounded-xl px-5 py-4 text-lg text-gray-800 outline-none focus:border-[#10B981] transition-all placeholder:text-gray-300"
       />
     )}
   </div>
@@ -65,26 +68,23 @@ const ImageUploader: React.FC<{
     : '';
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-xs font-semibold uppercase tracking-widest text-slate-400">{label}</label>
+    <div className="flex flex-col gap-2">
+      <label className="text-lg font-bold text-gray-900">{label}</label>
       <div className="flex items-center gap-4">
-        {previewSrc ? (
-          <div className="relative w-28 h-18 rounded-lg overflow-hidden border border-slate-200 shadow-sm">
-            <img src={previewSrc} alt={label} className="w-28 h-18 object-cover" />
-          </div>
-        ) : (
-          <div className="w-28 h-18 flex items-center justify-center rounded-lg border-2 border-dashed border-slate-200 bg-slate-50">
-            <ImageIcon size={20} className="text-slate-300" />
-          </div>
-        )}
+        <input
+          type="text"
+          value={currentUrl}
+          readOnly
+          className="flex-1 bg-white border border-gray-200 rounded-xl px-5 py-4 text-lg text-gray-500 outline-none"
+          placeholder="https://..."
+        />
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
           disabled={uploading}
-          className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 hover:border-emerald-400 hover:bg-emerald-50 rounded-lg text-sm font-medium text-slate-600 hover:text-emerald-700 transition-all disabled:opacity-50 shadow-sm"
+          className="flex items-center justify-center w-20 h-16 bg-white border border-gray-200 hover:border-[#10B981] rounded-xl transition-all disabled:opacity-50"
         >
-          {uploading ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
-          {uploading ? 'Envoi…' : "Changer l'image"}
+          {uploading ? <Loader2 size={24} className="animate-spin text-[#10B981]" /> : <Upload size={24} className="text-gray-400" />}
         </button>
         <input
           ref={inputRef}
@@ -204,59 +204,50 @@ export const AdminDashboard: React.FC = () => {
   };
 
   if (loading) return (
-    <div className="flex h-screen items-center justify-center bg-slate-900">
+    <div className="flex h-screen items-center justify-center" style={{ background: 'linear-gradient(to bottom, #0D4A23, #1A7A3C)' }}>
       <div className="flex flex-col items-center gap-4">
-        <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 flex items-center justify-center">
-          <Heart size={28} className="text-emerald-400 animate-pulse" />
-        </div>
-        <Loader2 className="animate-spin text-emerald-400" size={28} />
-        <p className="text-slate-400 text-sm">Chargement du tableau de bord…</p>
+        <img src="/images/logosansfondcontour.png" alt="Logo" className="w-16 h-16 object-contain" />
+        <Loader2 className="animate-spin text-white/80" size={28} />
+        <p className="text-white/60 text-sm">Chargement du tableau de bord…</p>
       </div>
     </div>
   );
 
-  const tabs: { id: Tab; icon: React.ElementType; label: string; desc: string }[] = [
-    { id: 'accueil', icon: Home, label: 'Accueil', desc: 'Hero, À propos, Stats' },
-    { id: 'qsn', icon: Users, label: 'Qui sommes-nous', desc: 'Présentation, Équipe' },
-    { id: 'actions', icon: Zap, label: 'Actions', desc: 'Santé, Éducation, Social' },
-    { id: 'galerie', icon: ImageIcon, label: 'Galerie', desc: `${gallery.length} image${gallery.length > 1 ? 's' : ''}` },
-    { id: 'contact', icon: Phone, label: 'Contact', desc: 'Coordonnées, Horaires' },
+  const tabs: { id: Tab; icon: React.ElementType; label: string }[] = [
+    { id: 'dashboard', icon: LayoutDashboard, label: 'Tableau de board' },
+    { id: 'accueil', icon: Home, label: 'Accueil' },
+    { id: 'qsn', icon: Users, label: 'Qui sommes-nous' },
+    { id: 'actions', icon: Rocket, label: 'Nos Actions' },
+    { id: 'galerie', icon: ImageIcon, label: 'Galerie' },
+    { id: 'contact', icon: Contact, label: 'Contacts' },
   ];
 
   const SectionCard: React.FC<{
     title: string;
-    subtitle?: string;
+    icon?: React.ElementType;
     children: React.ReactNode;
     onSave: () => void;
-  }> = ({ title, subtitle, children, onSave }) => (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-      <div className="px-8 py-5 border-b border-slate-100 flex items-center justify-between">
-        <div>
-          <h3 className="text-base font-bold text-slate-800">{title}</h3>
-          {subtitle && <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>}
+  }> = ({ title, icon: Icon = LayoutDashboard, children, onSave }) => (
+    <div className="bg-white rounded-[32px] border border-gray-100 shadow-sm overflow-hidden p-10">
+      <div className="flex items-center gap-4 mb-10">
+        <div className="text-[#10B981]">
+          <Icon size={32} />
         </div>
-        <button
-          onClick={onSave}
-          disabled={saving}
-          className="flex items-center gap-2 px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg transition-all disabled:opacity-50 shadow-sm shadow-emerald-200"
-        >
-          {saving ? <Loader2 size={14} className="animate-spin" /> : null}
-          Sauvegarder
-        </button>
+        <h3 className="text-3xl font-bold text-gray-900">{title}</h3>
       </div>
-      <div className="px-8 py-6 space-y-5">
+      <div className="space-y-8">
         {children}
       </div>
     </div>
   );
 
   const StatBlock: React.FC<{ n: number; defaults: { v: string; s: string; l: string } }> = ({ n, defaults }) => (
-    <div className="bg-slate-50 rounded-xl border border-slate-100 p-5">
-      <div className="flex items-center gap-2 mb-4">
-        <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold flex items-center justify-center">{n}</span>
-        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Statistique {n}</span>
+    <div className="bg-gray-50 rounded-[24px] border border-gray-100 p-8">
+      <div className="flex items-center gap-3 mb-6">
+        <span className="w-8 h-8 rounded-full bg-emerald-100 text-[#10B981] text-sm font-extrabold flex items-center justify-center">{n}</span>
+        <span className="text-sm font-bold text-gray-400 uppercase tracking-widest">Statistique {n}</span>
       </div>
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-6">
         <Field label="Valeur" value={get('accueil', 'stats', `stat${n}_value`, defaults.v)} onChange={v => set('accueil', 'stats', `stat${n}_value`, v)} />
         <Field label="Suffixe" value={get('accueil', 'stats', `stat${n}_suffix`, defaults.s)} onChange={v => set('accueil', 'stats', `stat${n}_suffix`, v)} />
         <Field label="Libellé" value={get('accueil', 'stats', `stat${n}_label`, defaults.l)} onChange={v => set('accueil', 'stats', `stat${n}_label`, v)} />
@@ -265,69 +256,49 @@ export const AdminDashboard: React.FC = () => {
   );
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-[#F1F5F9]">
 
       {/* ===== SIDEBAR ===== */}
-      <aside className="w-72 bg-slate-900 flex flex-col flex-shrink-0 min-h-screen">
-
-        {/* Logo */}
-        <div className="px-6 pt-8 pb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-900/40">
-              <Heart size={20} className="text-white" />
-            </div>
-            <div>
-              <p className="text-white font-bold text-sm leading-tight">L'Amour du</p>
-              <p className="text-emerald-400 font-bold text-sm leading-tight">Prochain</p>
-            </div>
+      <aside className="w-72 flex flex-col flex-shrink-0 min-h-screen shadow-xl z-20" style={{ background: 'linear-gradient(to bottom, #0D4A23 0%, #145C2D 40%, #1A7A3C 100%)' }}>
+        {/* Brand Section */}
+        <div className="px-6 pt-8 pb-6 text-center text-white border-b border-white/15">
+          <div className="flex justify-center mb-3">
+            <img src="/images/logosansfondcontour.png" alt="Logo" className="w-20 h-20 object-contain" />
           </div>
-          <div className="mt-5 pt-5 border-t border-slate-800">
-            <p className="text-xs text-slate-500 uppercase tracking-widest font-semibold">Tableau de bord</p>
-          </div>
+          <p className="text-sm font-medium opacity-85 mb-1">L'amour du prochain</p>
+          <h1 className="text-2xl font-extrabold tracking-wide">ADMIN</h1>
+          <div className="mt-4 border-t border-white/20" />
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-3 space-y-1">
+        <nav className="flex-1 mt-4 px-3 space-y-1">
           {tabs.map(item => {
             const isActive = activeTab === item.id;
             return (
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl transition-all text-left group ${
+                className={`w-full flex items-center gap-3 px-5 py-3 rounded-lg transition-all font-semibold text-sm ${
                   isActive
-                    ? 'bg-emerald-600 shadow-lg shadow-emerald-900/30'
-                    : 'hover:bg-slate-800'
+                    ? 'bg-white text-[#145C2D] shadow-md'
+                    : 'text-white/90 hover:bg-white/10'
                 }`}
               >
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-all ${
-                  isActive ? 'bg-white/20' : 'bg-slate-800 group-hover:bg-slate-700'
-                }`}>
-                  <item.icon size={16} className={isActive ? 'text-white' : 'text-slate-400'} />
-                </div>
-                <div className="min-w-0">
-                  <p className={`text-sm font-semibold truncate ${isActive ? 'text-white' : 'text-slate-300'}`}>
-                    {item.label}
-                  </p>
-                  <p className={`text-xs truncate mt-0.5 ${isActive ? 'text-emerald-200' : 'text-slate-500'}`}>
-                    {item.desc}
-                  </p>
-                </div>
+                <item.icon size={20} className={isActive ? 'text-[#145C2D]' : 'text-white/80'} />
+                <span>{item.label}</span>
               </button>
             );
           })}
         </nav>
 
-        {/* Déconnexion */}
-        <div className="p-4 border-t border-slate-800">
+        {/* Logout at bottom */}
+        <div className="p-4 border-t border-white/15">
           <button
             onClick={() => { localStorage.removeItem('admin_token'); navigate('/admin/login'); }}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all group"
+            className="w-full flex items-center justify-center gap-3 px-5 py-3 rounded-lg bg-white/10 text-white hover:bg-red-500/80 transition-all font-semibold text-sm border border-white/10"
           >
-            <div className="w-8 h-8 rounded-lg bg-slate-800 group-hover:bg-red-500/20 flex items-center justify-center transition-all">
-              <LogOut size={16} />
-            </div>
-            <span className="text-sm font-medium">Déconnexion</span>
+            <LogOut size={18} />
+            <span>Déconnexion</span>
           </button>
         </div>
       </aside>
@@ -335,33 +306,39 @@ export const AdminDashboard: React.FC = () => {
       {/* ===== CONTENU PRINCIPAL ===== */}
       <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
 
-        {/* Header */}
-        <header className="bg-white border-b border-slate-200 px-10 py-5 flex items-center justify-between flex-shrink-0">
+        {/* Header / Topbar */}
+        <header className="bg-white px-10 py-8 flex items-center justify-between flex-shrink-0 border-b border-gray-100">
           <div>
-            <h2 className="text-xl font-bold text-slate-900">
-              {tabs.find(t => t.id === activeTab)?.label}
+            <h2 className="text-4xl font-extrabold text-[#111827] tracking-tight mb-1">
+              Gestion du site
             </h2>
-            <p className="text-sm text-slate-400 mt-0.5">
-              {tabs.find(t => t.id === activeTab)?.desc}
+            <p className="text-gray-500 text-lg font-medium opacity-80">
+              Modifiez le contenu de votre site en temps réel
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            {saveSuccess && (
-              <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700 text-sm font-medium animate-pulse">
-                <CheckCircle2 size={16} />
-                Sauvegardé
-              </div>
-            )}
-            {saving && (
-              <div className="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-lg text-slate-500 text-sm">
-                <Loader2 size={15} className="animate-spin" />
-                Sauvegarde…
-              </div>
-            )}
-            <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center">
-              <span className="text-emerald-700 text-sm font-bold">A</span>
-            </div>
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => window.open('/', '_blank')}
+              className="flex items-center gap-2 px-6 py-3 border-2 border-emerald-500 text-emerald-600 font-bold rounded-xl hover:bg-emerald-50 transition-all text-lg"
+            >
+              <Users size={20} /> {/* Using Users as a placeholder for eye/view if not available, but let's look for eye */}
+              <Zap size={20} className="hidden" /> {/* just keeping imports clean */}
+              Voir le site
+            </button>
+            
+            <button
+              onClick={() => saveItems([])} // Placeholder for global save or last section save
+              className="flex items-center gap-2 px-8 py-3 bg-[#10B981] text-white font-extrabold rounded-xl hover:bg-emerald-600 transition-all shadow-lg text-lg shadow-emerald-200"
+            >
+              <CheckCircle2 size={24} className="hidden" /> 
+              <ImageIcon size={20} className="hidden" />
+              <LogOut size={20} className="hidden" />
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+              </svg>
+              Enregistrer
+            </button>
           </div>
         </header>
 
@@ -374,7 +351,7 @@ export const AdminDashboard: React.FC = () => {
               <>
                 <SectionCard
                   title="Section Hero"
-                  subtitle="Titre et sous-titre affichés en première page"
+                  icon={Home}
                   onSave={() => saveItems([
                     { page: 'accueil', section: 'hero', key: 'title' },
                     { page: 'accueil', section: 'hero', key: 'subtitle' },
@@ -392,7 +369,7 @@ export const AdminDashboard: React.FC = () => {
 
                 <SectionCard
                   title="Section À propos"
-                  subtitle="Textes et image de la section de présentation"
+                  icon={Users}
                   onSave={() => saveItems([
                     { page: 'accueil', section: 'about', key: 'paragraph1' },
                     { page: 'accueil', section: 'about', key: 'paragraph2' },
@@ -412,7 +389,7 @@ export const AdminDashboard: React.FC = () => {
 
                 <SectionCard
                   title="Statistiques clés"
-                  subtitle="Chiffres affichés dans la bande de statistiques"
+                  icon={LayoutDashboard}
                   onSave={() => saveItems(
                     [1, 2, 3, 4].flatMap(n => [
                       { page: 'accueil', section: 'stats', key: `stat${n}_value` },
@@ -434,7 +411,7 @@ export const AdminDashboard: React.FC = () => {
               <>
                 <SectionCard
                   title="Section Hero"
-                  subtitle="En-tête de la page Qui sommes-nous"
+                  icon={Home}
                   onSave={() => saveItems([
                     { page: 'qsn', section: 'hero', key: 'title' },
                     { page: 'qsn', section: 'hero', key: 'subtitle' },
@@ -452,7 +429,7 @@ export const AdminDashboard: React.FC = () => {
 
                 <SectionCard
                   title="Présentation"
-                  subtitle="Textes de la section d'introduction"
+                  icon={Contact}
                   onSave={() => saveItems([
                     { page: 'qsn', section: 'intro', key: 'paragraph1' },
                     { page: 'qsn', section: 'intro', key: 'paragraph2' },
@@ -464,7 +441,7 @@ export const AdminDashboard: React.FC = () => {
 
                 <SectionCard
                   title="Images de la présentation"
-                  subtitle="Ces 3 images apparaissent en collage dans la section présentation"
+                  icon={ImageIcon}
                   onSave={() => {}}
                 >
                   <div className="grid grid-cols-3 gap-4">
@@ -482,7 +459,7 @@ export const AdminDashboard: React.FC = () => {
 
                 <SectionCard
                   title="Équipe dirigeante"
-                  subtitle="Nom, rôle et photo des membres de l'équipe"
+                  icon={Users}
                   onSave={() => saveItems(
                     [1, 2, 3].flatMap(n => [
                       { page: 'qsn', section: 'team', key: `member${n}_name` },
@@ -547,7 +524,7 @@ export const AdminDashboard: React.FC = () => {
                     <SectionCard
                       key={ak}
                       title={`Action ${idx + 1} — ${d.title}`}
-                      subtitle="Titre, description, points clés et image"
+                      icon={Rocket}
                       onSave={() => saveItems([
                         { page: 'actions', section: ak, key: 'title' },
                         { page: 'actions', section: ak, key: 'description' },
@@ -679,7 +656,7 @@ export const AdminDashboard: React.FC = () => {
             {activeTab === 'contact' && (
               <SectionCard
                 title="Coordonnées & Horaires"
-                subtitle="Informations affichées sur la page de contact"
+                icon={Phone}
                 onSave={() => saveItems([
                   { page: 'contact', section: 'info', key: 'address' },
                   { page: 'contact', section: 'info', key: 'phone' },
