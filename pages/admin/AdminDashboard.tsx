@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 
 type Tab = 'dashboard' | 'accueil' | 'qsn' | 'actions' | 'galerie' | 'contact' | 'maintenance';
-const API = 'http://localhost:5000';
+const API = 'https://amourduprochain.kks-technologies.com';
 
 // --- Composants utilitaires ---
 

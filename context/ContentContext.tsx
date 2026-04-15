@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
-export const API_URL = 'http://localhost:5000';
+export const API_URL = 'https://amourduprochain.kks-technologies.com';
 
 export interface GalleryItem {
   id: number;
