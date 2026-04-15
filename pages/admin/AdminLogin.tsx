@@ -1,34 +1,39 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Lock, User, Mail } from 'lucide-react';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Lock, User, Mail } from "lucide-react";
 
 export const AdminLogin: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     try {
-      const response = await fetch('https://amourduprochain.kks-technologies.com/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
+      const response = await fetch(
+        "https://amourduprochain.kks-technologies.com/api/login",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        },
+      );
 
       const data = await response.json();
 
       if (response.ok) {
-        localStorage.setItem('admin_token', data.token);
-        navigate('/admin');
+        localStorage.setItem("admin_token", data.token);
+        navigate("/admin");
       } else {
         setError(data.message || "Erreur d'authentification");
       }
     } catch (err) {
-      setError('Impossible de contacter le serveur. Assurez-vous que le backend est lancé.');
+      setError(
+        "Impossible de contacter le serveur. Assurez-vous que le backend est lancé.",
+      );
     }
   };
 
@@ -40,7 +45,9 @@ export const AdminLogin: React.FC = () => {
             <Lock className="text-green-600" size={32} />
           </div>
           <h1 className="text-3xl font-bold text-gray-900">Espace Admin</h1>
-          <p className="text-gray-500 mt-2">Connectez-vous pour gérer le site</p>
+          <p className="text-gray-500 mt-2">
+            Connectez-vous pour gérer le site
+          </p>
         </div>
 
         {error && (
@@ -51,9 +58,14 @@ export const AdminLogin: React.FC = () => {
 
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">Adresse Email</label>
+            <label className="block text-sm font-bold text-gray-700 mb-2">
+              Adresse Email
+            </label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+              <Mail
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                size={20}
+              />
               <input
                 type="email"
                 value={email}
@@ -66,9 +78,14 @@ export const AdminLogin: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">Mot de passe</label>
+            <label className="block text-sm font-bold text-gray-700 mb-2">
+              Mot de passe
+            </label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+              <Lock
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                size={20}
+              />
               <input
                 type="password"
                 value={password}
